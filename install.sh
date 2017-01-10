@@ -1,32 +1,29 @@
 #!/bin/bash
 # DDOS_Fighter v1.0 Installer
 # Copyright© 2012 Hussien Yousef
+version=1.0
 
 # check if DDOS_Fighter installed before
-if [ -e "/etc/ddos_fighter/fighter.sh" ]; then
-	echo "You have the app or an older version is already installed on you system"
-	echo "you need to uninstall it using sh /etc/ddos_fighter/uninstall.sh"
-	exit 1
+if [ -e "/etc/ddos_fighter/fighter.sh" ] && [ -e "/etc/ddos_fighter/fighter.conf" ]; then
+	source /etc/ddos_fighter/fighter.conf
+	if [ $ddosfighter_version -ge $version ]; then
+		echo "You have a newer version is already installed on you system"
+		exit 1
+	fi
 else
 	# remove an empty folder if exists
 	rm -rf /etc/ddos_fighter
 fi
 
-# download the app files
-#echo "Downloading DDOS_Fighter files ..."
-#wget http://fighter.ehcommunity.com/ddos_fighter.zip
-#unzip ddos_fighter.zip
-#mv ddos_fighter /etc/ddos_fighter
+# Making the folder and copy files
 mkdir /etc/ddos_fighter
 mv fighter.sh /etc/ddos_fighter/
 mv fighter_flush.sh /etc/ddos_fighter/
-mv uninstall.sh /etc/ddos_fighter/
 mv fighter.conf /etc/ddos_fighter/
 mv blocked.list /etc/ddos_fighter/
 echo "[+] DDOS_Fighter files have been moved to /etc/ddos_fighter"
 chmod +x /etc/ddos_fighter/fighter.sh
 chmod +x /etc/ddos_fighter/fighter_flush.sh
-chmod +x /etc/ddos_fighter/uninstall.sh
 echo "[+] DDOS_Fighter files are given the right permissions to work."
 
 # set up new cron tasks to run the app
