@@ -1,6 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ips unblocker for DDOS_Fighter
 # Copyright© 2012 Hussien Yousef
+if [ $EUID -ne 0 ]; then
+	echo "This script must be run as root" 
+	exit 1
+fi
 
 # the config file path
 config_path=/etc/ddos_fighter/fighter.conf
@@ -9,7 +13,6 @@ config_path=/etc/ddos_fighter/fighter.conf
 blocked_path=/etc/ddos_fighter/blocked.list
 
 # include the config variables
-echo "Removing all blocked ips ...."
 if [ -e "$config_path" ]
 then
 	source $config_path
@@ -19,6 +22,7 @@ else
 	exit 2
 fi
 
+echo "Removing all blocked ips ...."
 # check which firewall software is used
 if [ $csf_exits -eq "1"  ];then
 	# flashing all ips blocked by csf
