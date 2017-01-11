@@ -33,11 +33,11 @@ sed -i 's,^\(checkEveryInMinutes=\).*,\1'$checkEveryInMinutes',' fighter.conf
 
 # Making the folder and copy files
 mkdir /etc/ddos_fighter
-mv fighter.sh /etc/ddos_fighter/
-mv fighter_flush.sh /etc/ddos_fighter/
-mv fighter_functions.sh /etc/ddos_fighter/
-mv fighter.conf /etc/ddos_fighter/
-mv blocked.list /etc/ddos_fighter/
+cp fighter.sh /etc/ddos_fighter/
+cp fighter_flush.sh /etc/ddos_fighter/
+cp fighter_functions.sh /etc/ddos_fighter/
+cp fighter.conf /etc/ddos_fighter/
+cp blocked.list /etc/ddos_fighter/
 echo "[+] DDOS_Fighter files have been moved to /etc/ddos_fighter"
 chmod +x /etc/ddos_fighter/fighter.sh
 chmod +x /etc/ddos_fighter/fighter_flush.sh
