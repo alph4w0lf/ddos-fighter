@@ -17,11 +17,11 @@ function isRunning()
 {
 	if [ -e /etc/ddos_fighter/ddos_fighter.pid ]; then
 		pid=`cat /etc/ddos_fighter/ddos_fighter.pid`
+		return 0
 		# check if a valid number
 		#if [ `expr $pid + 1 2> /dev/null` ]; then
-		return 1
 	else
-		return 0
+		return 1
 	fi
 }
 

@@ -58,7 +58,7 @@ case $1 in
 			# flushing
 			if [[ $(($(date +%s) - ($lastFlush+$flushEveryInMinutes*60))) -ge 0 ]]; then
 				bash /etc/ddos_fighter/fighter_flush.sh
-				$lastFlush=$(date +%s)
+				lastFlush=$(date +%s)
 				sed -i 's,^\(lastFlush=\).*,\1'$lastFlush',' /etc/ddos_fighter/fighter.conf
 			fi
 
@@ -96,7 +96,7 @@ case $1 in
 						ufw reload
 					fi
 				fi
-				$lastCheck=$(date +%s)
+				lastCheck=$(date +%s)
 				sed -i 's,^\(lastCheck=\).*,\1'$lastCheck',' /etc/ddos_fighter/fighter.conf
 
 				#delete the results file

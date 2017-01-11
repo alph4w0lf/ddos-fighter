@@ -9,16 +9,16 @@ fi
 version=2.1
 
 # check if DDOS_Fighter installed before and what version
-if [ -e "/etc/ddos_fighter/fighter.sh" ] && [ -e "/etc/ddos_fighter/fighter.conf" ]; then
-	source /etc/ddos_fighter/fighter.conf
-	if [ $ddosfighter_version -ge $version ]; then
-		echo "You have a newer version is already installed on you system"
-		exit 1
-	fi
-else
+#if [ -e "/etc/ddos_fighter/fighter.sh" ] && [ -e "/etc/ddos_fighter/fighter.conf" ]; then
+#	source /etc/ddos_fighter/fighter.conf
+#	if [ "$ddosfighterVersion" \> "$version" ] || [ "$ddosfighterVersion" == "$version" ]; then
+#		echo "You have a newer version is already installed on you system"
+#		exit 1
+#	fi
+#else
 	# remove an empty folder if exists
 	rm -rf /etc/ddos_fighter
-fi
+#fi
 
 # Checking config file for errors and setting *EveryInMinutes
 source fighter_functions.sh
