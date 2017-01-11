@@ -58,6 +58,8 @@ case $1 in
 			# flushing
 			if [[ $(($(date +%s) - ($lastFlush+$flushEveryInMinutes*60))) -ge 0 ]]; then
 				bash /etc/ddos_fighter/fighter_flush.sh
+				$lastFlush=$(date +%s)
+				sed -i 's,^\(lastFlush=\).*,\1'$lastFlush',' /etc/ddos_fighter/fighter.conf
 			fi
 
 			# checking
@@ -94,6 +96,8 @@ case $1 in
 						service iptables restart
 					fi
 				fi
+				$lastCheck=$(date +%s)
+				sed -i 's,^\(lastCheck=\).*,\1'$lastCheck',' /etc/ddos_fighter/fighter.conf
 
 				#delete the results file
 				rm -rf $results_file
@@ -131,8 +135,8 @@ case $1 in
 	echo "[+] Calculating timing."
 	#sed -i 's/flushEvery=.*/flushEvery=$flushEvery/' fighter.conf
 	#sed -i 's/checkEvery=.*/checkEvery=$checkEvery/' fighter.conf
-	sed -i 's,^\(flushEveryInMinutes=\).*,\1'$flushEveryInMinutes',' fighter.conf
-	sed -i 's,^\(checkEveryInMinutes=\).*,\1'$checkEveryInMinutes',' fighter.conf
+	sed -i 's,^\(flushEveryInMinutes=\).*,\1'$flushEveryInMinutes',' /etc/ddos_fighter/fighter.conf
+	sed -i 's,^\(checkEveryInMinutes=\).*,\1'$checkEveryInMinutes',' /etc/ddos_fighter/fighter.conf
 	bash /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1 &
 	echo "[+] Running ..."
 	;;
