@@ -133,7 +133,7 @@ case $1 in
 	#sed -i 's/checkEvery=.*/checkEvery=$checkEvery/' fighter.conf
 	sed -i 's,^\(flushEveryInMinutes=\).*,\1'$flushEveryInMinutes',' fighter.conf
 	sed -i 's,^\(checkEveryInMinutes=\).*,\1'$checkEveryInMinutes',' fighter.conf
-	bash /etc/ddos_fighter/fighter.sh -s &
+	bash /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1 &
 	echo "[+] Running ..."
 	;;
 *) # If no option specified invoke this

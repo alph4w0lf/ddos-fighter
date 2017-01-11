@@ -53,6 +53,8 @@ echo "[+] DDOS_Fighter files are given the right permissions to work."
 # service crond restart
 # echo "[+] Cron tasks have been installed."
 
+bash /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1 &
+
 # final message
 echo -e "\n The app now is ready and working , if you want to change any of it's"
 echo "configuration , edit : /etc/ddos_fighter/fighter.conf ."
