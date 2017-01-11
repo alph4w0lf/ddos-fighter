@@ -6,7 +6,7 @@ if [ $EUID -ne 0 ]; then
 	exit 1
 fi
 
-version=1.0
+version=2.1
 
 # check if DDOS_Fighter installed before and what version
 if [ -e "/etc/ddos_fighter/fighter.sh" ] && [ -e "/etc/ddos_fighter/fighter.conf" ]; then
