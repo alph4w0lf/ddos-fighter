@@ -62,3 +62,4 @@ echo "if you edited the configuration file , don't forget to execute this comman
 echo "sh /etc/ddos_fighter/fighter.sh -config"
 echo -e "\n I wish this app can help you or at least lowers your problems."
 echo "For any feedbacks , feel free to contact me at : buff3r0@gmail.com ."
+

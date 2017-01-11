@@ -92,8 +92,8 @@ case $1 in
 					if [ $csf_exits -eq "1" ];then
 						csf -r
 					else
-						service iptables save
-						service iptables restart
+						#iptables-save
+						ufw reload
 					fi
 				fi
 				$lastCheck=$(date +%s)

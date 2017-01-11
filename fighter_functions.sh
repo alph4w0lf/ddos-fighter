@@ -9,16 +9,17 @@ function block_csf()
 function block_ipt()
 {
 	# block the recieved ip by iptables
-	/sbin/iptables -A INPUT -s $1 -j DROP
+	iptables -A INPUT -s $1 -j DROP
 	echo "$1 # Banned by DDOS_Fighter for $2 connections to port 80 on `date`" >> $blocked_path
 }
 
 function isRunning()
 {
-	pid=`cat /etc/ddos_fighter/ddos_fighter.pid`
-	# check if a valid number
-	if [ `expr $pid + 1 2> /dev/null` ]; then
-	    return 1
+	if [ -e /etc/ddos_fighter/ddos_fighter.pid ]; then
+		pid=`cat /etc/ddos_fighter/ddos_fighter.pid`
+		# check if a valid number
+		#if [ `expr $pid + 1 2> /dev/null` ]; then
+		return 1
 	else
 		return 0
 	fi
@@ -84,5 +85,18 @@ function validateCalculateTiming()
 		flushEveryInMinutes=$(($days*1440+$hours*60+$minutes))
 	elif [ "$2" = "checkEvery" ]; then
 		checkEveryInMinutes=$(($days*1440+$hours*60+$minutes))
+	fi
+}
+
+function whichDistro()
+{
+	if [ -f /etc/lsb-release ]; then
+		distro=$(lsb_release -s -d)
+	elif [ -f /etc/debian_version ]; then
+		distro="Debian $(cat /etc/debian_version)"
+	elif [ -f /etc/redhat-release ]; then
+		distro=`cat /etc/redhat-release`
+	else
+		distro="$(uname -s) $(uname -r)"
 	fi
 }

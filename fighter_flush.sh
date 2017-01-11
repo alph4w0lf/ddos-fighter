@@ -32,6 +32,9 @@ else
 	# flashing all ips blocked by IPTables
 	while read ip other
 	do
+		if [ "$ip" == "#" ]; then
+			continue
+		fi
 		/sbin/iptables -D INPUT -s $ip -j DROP
 	done < "$blocked_path"
 	service iptables save
