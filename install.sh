@@ -1,65 +1,55 @@
 #!/usr/bin/env bash
-# DDOS_Fighter v1.0 Installer
+# DDOS_Fighter v2.2 Installer
 # Copyright© 2012 Hussien Yousef
 if [ $EUID -ne 0 ]; then
 	echo "This script must be run as root" 
 	exit 1
 fi
 
-version=2.1
+version=2.2
 
 # check if DDOS_Fighter installed before and what version
-#if [ -e "/etc/ddos_fighter/fighter.sh" ] && [ -e "/etc/ddos_fighter/fighter.conf" ]; then
-#	source /etc/ddos_fighter/fighter.conf
-#	if [ "$ddosfighterVersion" \> "$version" ] || [ "$ddosfighterVersion" == "$version" ]; then
-#		echo "You have a newer version is already installed on you system"
-#		exit 1
-#	fi
-#else
-	# remove an empty folder if exists
-	rm -rf /etc/ddos_fighter
-#fi
+if [[ -e "/etc/ddos_fighter/fighter.sh" ]] && [[ -e "/etc/ddos_fighter/fighter.conf" ]]; then
+	source /etc/ddos_fighter/fighter.conf
+	if [[ "$ddosfighterVersion" > "$version" ]]; then
+		echo "You have a newer version is already installed on your system"
+		exit 1
+	elif [[ "$ddosfighterVersion" == "$version" ]]; then
+		echo "You have the latest version is already installed on your system"
+		exit 1
+	fi
+fi
 
-# Checking config file for errors and setting *EveryInMinutes
+# Checking config file for errors and setting EveryInSeconds variables
+echo "[+] Setting the configuration file."
 source fighter_functions.sh
 source fighter.conf
+echo "[+] Calculating timing."
 validateCalculateTiming $flushEvery flushEvery
 validateCalculateTiming $checkEvery checkEvery
-echo "[+] Calculating timing."
-#sed -i 's/flushEvery=.*/flushEvery=$flushEvery/' fighter.conf
-#sed -i 's/checkEvery=.*/checkEvery=$checkEvery/' fighter.conf
-sed -i 's,^\(flushEveryInMinutes=\).*,\1'$flushEveryInMinutes',' fighter.conf
-sed -i 's,^\(checkEveryInMinutes=\).*,\1'$checkEveryInMinutes',' fighter.conf
+sed -i 's,^\(flushEveryInSeconds=\).*,\1'$flushEveryInSeconds',' fighter.conf
+sed -i 's,^\(checkEveryInSeconds=\).*,\1'$checkEveryInSeconds',' fighter.conf
 
-# Making the folder and copy files
+echo "[+] Copying files."
+# Remove the folder if exists and making the folder and copy files
+rm -rf /etc/ddos_fighter
 mkdir /etc/ddos_fighter
 cp fighter.sh /etc/ddos_fighter/
-cp fighter_flush.sh /etc/ddos_fighter/
 cp fighter_functions.sh /etc/ddos_fighter/
 cp fighter.conf /etc/ddos_fighter/
 cp blocked.list /etc/ddos_fighter/
 echo "[+] DDOS_Fighter files have been moved to /etc/ddos_fighter"
 chmod +x /etc/ddos_fighter/fighter.sh
-chmod +x /etc/ddos_fighter/fighter_flush.sh
-chmod +x /etc/ddos_fighter/fighter_functions.sh
+if [[ $csf_exists -eq 1 ]];then
+	touch /etc/csf/csfpost.sh
+	chmod +x /etc/csf/csfpost.sh
+fi
 echo "[+] DDOS_Fighter files are given the right permissions to work."
 
-# set up new cron tasks to run the app
-# cron_path=/etc/cron.d/ddos_fighter
-# echo "# This is the cron file for DDOS_Fighter v1.0" > $cron_path
-# echo "# last updated in `date`" >> $cron_path
-# echo "* * * * * root sh /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1" >> $cron_path
-# echo "* * * * * root sh /etc/ddos_fighter/fighter_flush.sh >/dev/null 2>&1" >> $cron_path
-# service crond restart
-# echo "[+] Cron tasks have been installed."
-
-bash /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1 &
+/etc/ddos_fighter/fighter.sh -s &>$logFile &
 
 # final message
-echo -e "\n The app now is ready and working , if you want to change any of it's"
-echo "configuration , edit : /etc/ddos_fighter/fighter.conf ."
-echo "if you edited the configuration file , don't forget to execute this command"
-echo "sh /etc/ddos_fighter/fighter.sh -config"
-echo -e "\n I wish this app can help you or at least lowers your problems."
-echo "For any feedbacks , feel free to contact me at : buff3r0@gmail.com ."
-
+echo -e "\n The program is now ready and working, please check $logFile for errors, if the program not running please run /etc/ddos_fighter/fighter.sh -r"
+echo "if you want to change any of it's configuration, edit /etc/ddos_fighter/fighter.conf then restart by /etc/ddos_fighter/fighter.sh -r"
+echo -e "\n I wish this program can help you or at least lowers your problems."
+echo "For any feedbacks, feel free to contact me at: buff3r0@gmail.com"
