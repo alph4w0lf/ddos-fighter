@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###############################################################
 #                   DDOS_Fighter Version 1.0  
 #                 Copyright© 2012 Hussien Yousef	                 
@@ -13,114 +13,172 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.               
 ###############################################################
+if [ $EUID -ne 0 ]; then
+	echo "This script must be run as root"
+	exit 1
+fi
 
 # the config file path
 config_path=/etc/ddos_fighter/fighter.conf
 
-# blocked ip list path for iptables
-blocked_path=/etc/ddos_fighter/blocked.list
-
 # include the config variables
-if [ -e "$config_path" ]
-then
-  source $config_path
+if [ -w "$config_path" ]; then
+	source $config_path
 else
-  echo -e "\n Couldn't find the config file in $config_path"
-  echo "Make sure the config file exits and is readable ."
-  exit 2
+	echo "Couldn't find the config file in $config_path"
+	echo "Make sure the config file exits and is readable and writable."
+	exit 1
 fi
 
-# Pre-defined functions
-function block_csf(){
-# block the recieved ip by csf
-echo "$1 # Banned by DDOS_Fighter for $2 connections to port 80 on `date`" >> /etc/csf/csf.deny
-}
-
-function block_ipt(){
-# block the recieved ip by iptables
-/sbin/iptables -A INPUT -s $1 -j DROP
-echo "$1 # Banned by DDOS_Fighter for $2 connections to port 80 on `date`" >> $blocked_path
-}
+# include the functions file
+if [ -e /etc/ddos_fighter/fighter_functions.sh ]; then
+	source /etc/ddos_fighter/fighter_functions.sh
+else
+	echo "Couldn't find the functions file"
+	echo "Please delete /etc/ddos_fighter and install it again."
+	exit 1
+fi
 
 # The main options
 case $1 in
 "-s") # Here is the code to start fighting DDOS attacks
+	if isRunning; then
+		echo -e "\n The program is already running"
+		echo "run /etc/ddos_fighter/fighter.sh -r to restart and apply new configurations"
+		exit 1
+	else
+		# Catch interrupts
+		trap 'beforeExit $LINENO $BASH_COMMAND; exit' SIGHUP SIGINT SIGQUIT SIGTERM EXIT
 
-# output information about ips and connections to $results_file
-results_file=/etc/ddos_fighter/results.txt
-netstat -n|grep :80|cut -c 45-|cut -f 1 -d ':'|sort|uniq -c|sort -nr|more > $results_file
+		writePID
+		while [[ true ]]; do
+			# flushing
+			if [[ $(($(date +%s) - ($lastFlush+$flushEveryInSeconds))) -ge 0 ]]; then
+				/etc/ddos_fighter/fighter.sh -f
+				# updating last flush time
+				lastFlush=$(date +%s)
+				sed -i 's,^\(lastFlush=\).*,\1'$lastFlush',' /etc/ddos_fighter/fighter.conf
+			fi
 
-# start checking connections and block attackers ips
-blocked_num=0
-while read num_con ip
-do
-if [ $num_con -ge $conn_limit ]
-then
-# here is what to do if an ip exceded the limit number of connections
-let "blocked_num += 1"
-if [ $csf_exits -eq 1 ]
-then
-#block by csf
-block_csf $ip $num_con
-else
-#block by ip_tables
-block_ipt $ip $num_con
-fi
+			# checking
+			if [[ $(($(date +%s) - ($lastCheck+$checkEveryInSeconds))) -ge 0 ]]; then
+				# output information about ips and connections to $results_file
+				results_file=/etc/ddos_fighter/results.txt
 
-fi
-done < "$results_file"
+				# When blocking IPs actually iptables firewall just block the new connections
+				# Can't block already established connections. So this program may block the
+				# same IP more than one time, to make sure when flushing that all duplicated
+				# IPs is unblocked, the program will run into a loop and take some time depends
+				# on the keep-alive configuration of the web sever.
+				netstat -nut|grep :80|cut -c 45-|cut -f 1 -d ':'|sort|uniq -c|sort -nr > $results_file
 
-# After finishing checking and blocking
-# restart firewalls
-if [ $blocked_num -ge "1" ];then
-# choose which firewall to restart
-if [ $csf_exits -eq "1" ];then
-csf -r
-else
-service iptables save
-service iptables restart
-fi
+				# start checking connections and block attackers ips
+				blocked_num=0
+				while read num_con ip
+				do
+					if [[ $num_con -ge $conn_limit ]]; then
+						# here is what to do if an ip exceded the limit number of connections
+						((blocked_num++))
+						if [[ $csf_exists -eq 1 ]]; then
+							#block by csf
+							block_csf $ip $num_con
+						else
+							#block by ip_tables
+							block_ipt $ip $num_con
+						fi
+					fi
+				done < "$results_file"
 
-fi
+				# After finishing checking and blocking
+				# restart csf firewall
+				if [[ $blocked_num -ge 1 ]] && [[ $csf_exists -eq 1 ]];then
+					csf -r &
+				fi
+				# updating last check time
+				lastCheck=$(date +%s)
+				sed -i 's,^\(lastCheck=\).*,\1'$lastCheck',' /etc/ddos_fighter/fighter.conf
 
-#delete the results file
-rm -rf $results_file
-echo -e "\n Done.  $blocked_num attackers have been blocked ."
-;;
+				#delete the results file
+				rm -rf $results_file
+				if [[ $blocked_num -ge 1 ]];then
+					logThat "$blocked_num IPs have been blocked"
+				fi
+			fi
+
+			# sleep for 2.5 seconds
+			# this makes the margin of error 7.5s at maximum time without checking
+			# the amount of time between two checks if neither flush nor check was executed
+			sleep 2.5
+		done
+	fi
+	;;
 "-unb") # Unblock an ip address
-echo "$2"
-if [ $csf_exits -eq "1" ];then
-echo -e "\n to unblock this ip , edit the file /etc/csf/csf.deny and remove the line that contains the ip"
-echo "After removing the line , save the file then restart the firewall using the command : csf-r"
-else
-/sbin/iptables -D INPUT -s $2 -j DROP
-service iptables save
-service iptables restart
-echo -e "\n $2 have been unblocked from IPTables successfully."
-fi
-;;
-"-f") # remove all blocked ips
-sh /etc/ddos_fighter/fighter_flush.sh
-;;
-"-config") # update settings from fighter.conf
-cron_path=/etc/cron.d/ddos_fighter
-echo "# This is the cron file for DDOS_Fighter v1.0" > $cron_path
-echo "# last updated in `date`" >> $cron_path
-echo "*/$f_minutes * * * * root sh /etc/ddos_fighter/fighter.sh -s >/dev/null 2>&1" >> $cron_path
-echo "*/$x_minutes * * * * root sh /etc/ddos_fighter/fighter_flash.sh >/dev/null 2>&1" >> $cron_path
-service crond restart
-;;
+	if [[ $csf_exists -eq 1 ]];then
+		sed -i "/$2/d" /etc/csf/csfpost.sh
+		csf -r &
+		echo "$2 have been unblocked from CSF successfully."
+	else
+		iptables -D INPUT -s $2 -j DROP
+		echo "$2 have been unblocked from IPTables successfully."
+	fi
+	;;
+"-f") # remove all blocked IPs
+	echo "Removing all blocked IPs ..."
+	# check which firewall software is used
+	if [[ $csf_exists -eq 1  ]];then
+		# flushing all ips blocked by csf
+		echo "# IPs last flushed by DDOS_Fighter in `date "+%d/%m/%Y %T %z | "`" >/etc/csf/csfpost.sh
+		csf -r &
+	else
+		# flushing all ips blocked by IPTables
+		while read ip other
+		do
+			if [[ "$ip" == \#* ]]; then
+				continue
+			fi
+
+			while iptables -D INPUT -s $ip -j DROP &>/dev/null;
+			do
+				:
+			done
+		done < "$blocked_path"
+	fi
+
+	echo "`date "+%d/%m/%Y %T %z | "` All blocked IPs have been removed successfully." >>$logFile
+	echo "All blocked IPs have been removed successfully."
+	;;
+"-r") # restart
+	if isRunning; then
+		kill -s SIGTERM $pid
+		sleep 1
+	fi
+
+	validateCalculateTiming $flushEvery flushEvery
+	validateCalculateTiming $checkEvery checkEvery
+	echo "[+] Calculating timing."
+	sed -i 's,^\(flushEveryInSeconds=\).*,\1'$flushEveryInSeconds',' /etc/ddos_fighter/fighter.conf
+	sed -i 's,^\(checkEveryInSeconds=\).*,\1'$checkEveryInSeconds',' /etc/ddos_fighter/fighter.conf
+
+	# if changed from csf to iptables, flush csf blocked IPs
+	if [[ $csf_exists -eq 0 ]] && [[ -e /etc/csf/csfpost.sh ]];then
+		echo "" > /etc/csf/csfpost.sh
+		csf -r &
+	fi
+
+	/etc/ddos_fighter/fighter.sh -s &>>$logFile &
+	echo "[+] Running ..."
+	;;
 *) # If no option specified invoke this
-echo "################################################################"
-echo "#                   DDOS_Fighter Version 1.0                   #"
-echo "#             Coded By Explicit (Hussien Yousef)               #"
-echo "#                   Mail: Buff3r0@Gmail.Com                    #"
-echo "#         Website: http://fighter.ehcommunity.com              #"
-echo "################################################################"
-echo -e "\n USAGE :"
-echo -e "-s\t# to start protection"
-echo -e "-f\t# unblock all blocked ips"
-echo -e "-config\t# update current settings from configuration file"
-echo -e "-unb [ip]\t# to unblock an ip"
-;;
+	echo "################################################################"
+	echo "#                   DDOS_Fighter Version 2.2                   #"
+	echo "#             Coded By Explicit (Hussien Yousef)               #"
+	echo "#                   Mail: Buff3r0@Gmail.Com                    #"
+	echo "#         Website: http://fighter.ehcommunity.com              #"
+	echo "################################################################"
+	echo -e "\n USAGE :"
+	echo -e "\t-s\t\t# to start protection"
+	echo -e "\t-f\t\t# unblock all blocked IPs"
+	echo -e "\t-r\t\t# update current settings from configuration file"
+	echo -e "\t-unb [IP]\t# to unblock an IP"
+	;;
 esac
